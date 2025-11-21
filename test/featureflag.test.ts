@@ -13,8 +13,8 @@ describe('ssr', async () => {
   })
 
   it('Make sure feature flag is on', async () => {
-    // Get response to a server-rendered page with `$fetch`.
     const html = await $fetch('/')
     expect(html).toContain('Feature is on')
   })
 })
+
