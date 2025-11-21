@@ -28,14 +28,14 @@ This module allows the use of [Unleash](https://www.getunleash.io) feature flagg
 Install the module to your Nuxt application with one command:
 
 ```bash
-npx nuxi module add @bluecoaster/nuxt-unleash
+npm install approck-nuxt-unleash
 ```
 
 Then add the options into your `nuxt.config.ts`:
 
 ```javascript
 export default defineNuxtConfig({
-  modules: ["@bluecoaster/nuxt-unleash"],
+  modules: ["approck-nuxt-unleash"],
   unleash: {
     url: "https://your-unleash-proxy.com/api/frontend",
     clientKey: "YOUR_CLIENT_KEY",
@@ -83,11 +83,11 @@ That's it! You can now use Unleash in your Nuxt app ✨
 
 <!-- Badges -->
 
-[npm-version-src]: https://img.shields.io/npm/v/@bluecoaster/nuxt-unleash/latest.svg?style=flat&colorA=020420&colorB=00DC82
-[npm-version-href]: https://npmjs.com/package/@bluecoaster/nuxt-unleash
-[npm-downloads-src]: https://img.shields.io/npm/dm/@bluecoaster/nuxt-unleash.svg?style=flat&colorA=020420&colorB=00DC82
-[npm-downloads-href]: https://npm.chart.dev/@bluecoaster/nuxt-unleash
-[license-src]: https://img.shields.io/npm/l/@bluecoaster/nuxt-unleash.svg?style=flat&colorA=020420&colorB=00DC82
-[license-href]: https://npmjs.com/package/@bluecoaster/nuxt-unleash
+[npm-version-src]: https://img.shields.io/npm/v/approck-nuxt-unleash/latest.svg?style=flat&colorA=020420&colorB=00DC82
+[npm-version-href]: https://npmjs.com/package/approck-nuxt-unleash
+[npm-downloads-src]: https://img.shields.io/npm/dm/approck-nuxt-unleash.svg?style=flat&colorA=020420&colorB=00DC82
+[npm-downloads-href]: https://npm.chart.dev/approck-nuxt-unleash
+[license-src]: https://img.shields.io/npm/l/approck-nuxt-unleash.svg?style=flat&colorA=020420&colorB=00DC82
+[license-href]: https://npmjs.com/package/approck-nuxt-unleash
 [nuxt-src]: https://img.shields.io/badge/Nuxt-020420?logo=nuxt.js
 [nuxt-href]: https://nuxt.com

@@ -1,8 +1,8 @@
 {
-  "name": "@bluecoaster/nuxt-unleash",
-  "version": "0.1.4",
-  "description": "This module allows the use of Unleash feature flagging system into your Nuxt 3 app.",
-  "repository": "https://github.com/Bluecoaster455/nuxt-unleash",
+  "name": "approck-nuxt-unleash",
+  "version": "0.1.0",
+  "description": "This module allows the use of Unleash feature flagging system into your Nuxt 3 app using unleash-proxy-client.",
+  "repository": "https://github.com/approck/nuxt-unleash",
   "license": "MIT",
   "type": "module",
   "private": false,
