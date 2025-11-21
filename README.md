@@ -18,7 +18,7 @@ This module allows the use of [Unleash](https://www.getunleash.io) feature flagg
 
 ## Features
 
-- Uses the [unleash-client](https://www.npmjs.com/package/unleash-client) SDK as the driving package for communications.
+- Uses the [unleash-proxy-client](https://www.npmjs.com/package/unleash-proxy-client) SDK (v3.7.8) for communications with Unleash Proxy or Unleash Edge.
 - Reactive feature flag reloading in your components
 - Server-side (API) support
 - Contextual features support
@@ -37,12 +37,16 @@ Then add the options into your `nuxt.config.ts`:
 export default defineNuxtConfig({
   modules: ["@bluecoaster/nuxt-unleash"],
   unleash: {
-    url: "https://your-unleash-instance.com/unleash",
+    url: "https://your-unleash-proxy.com/api/frontend",
+    clientKey: "YOUR_CLIENT_KEY",
     appName: "my-app-name",
-    instanceId: "YOUR_INSTANCE_ID_IF_REQUIRED",
+    refreshInterval: 15, // optional, in seconds
+    environment: "production", // optional
   },
 });
 ```
+
+**Note:** This module requires an Unleash Proxy or Unleash Edge instance. The `url` should point to your proxy's frontend API endpoint (typically `/api/frontend`), and `clientKey` is the client-side API token from your Unleash instance.
 
 That's it! You can now use Unleash in your Nuxt app ✨
 

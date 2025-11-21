@@ -1,8 +1,15 @@
 import { defineNuxtModule, createResolver, addServerHandler, addServerPlugin, addTypeTemplate, addImports } from '@nuxt/kit'
-import type { UnleashConfig } from 'unleash-client'
 import { defu } from 'defu'
 
-export type ModuleOptions = UnleashConfig & { customApiPath: string }
+export interface UnleashProxyConfig {
+  url: string
+  clientKey: string
+  appName: string
+  refreshInterval?: number
+  environment?: string
+}
+
+export type ModuleOptions = UnleashProxyConfig & { customApiPath: string }
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {

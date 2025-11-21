@@ -5,8 +5,8 @@ export default defineNuxtConfig({
     NuxtUnleash,
   ],
   unleash: {
-    url: 'https://gitlab.com/api/v4/feature_flags/unleash/64595608',
+    url: 'https://your-unleash-proxy.com/api/frontend',
+    clientKey: 'YOUR_CLIENT_KEY',
     appName: 'staging',
-    instanceId: 'glffct-x59mDPtqt5xBQHh_Y3cs',
   },
 })
