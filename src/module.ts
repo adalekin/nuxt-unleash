@@ -11,7 +11,9 @@ export interface UnleashProxyConfig {
 
 export type ModuleOptions = UnleashProxyConfig & { customApiPath: string }
 
-export default defineNuxtModule<ModuleOptions>({
+// TypeScript cannot infer the return type without referencing internal Nuxt types
+// This is a known limitation when generating declaration files for Nuxt modules
+const moduleDefinition = defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'approck-nuxt-unleash',
     configKey: 'unleash',
@@ -25,11 +27,12 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.runtimeConfig.unleash ||= { ...options }
     nuxt.options.runtimeConfig.public.unleash ||= { customApiPath: 'unleash' }
 
-    nuxt.options.runtimeConfig.unleash = defu(nuxt.options.runtimeConfig.unleash, {
-      ...options,
-    }) as ModuleOptions
+    nuxt.options.runtimeConfig.unleash = defu(
+      nuxt.options.runtimeConfig.unleash as ModuleOptions,
+      options,
+    ) as ModuleOptions
 
-    nuxt.options.runtimeConfig.public.unleash.customApiPath = nuxt.options.runtimeConfig.unleash.customApiPath
+    ;(nuxt.options.runtimeConfig.public.unleash as { customApiPath: string }).customApiPath = (nuxt.options.runtimeConfig.unleash as ModuleOptions).customApiPath
 
     addServerPlugin(resolve('./runtime/server/plugin'))
 
@@ -72,3 +75,6 @@ export default defineNuxtModule<ModuleOptions>({
     })
   },
 })
+
+// Type inference issue when generating declaration files - module works correctly at runtime
+export default moduleDefinition as unknown as ReturnType<typeof defineNuxtModule<ModuleOptions>>
