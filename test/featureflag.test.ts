@@ -17,4 +17,3 @@ describe('ssr', async () => {
     expect(html).toContain('Feature is on')
   })
 })
-

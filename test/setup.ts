@@ -2,14 +2,14 @@ import { vi } from 'vitest'
 
 // Mock unleash-proxy-client module
 vi.mock('unleash-proxy-client', async () => {
-  const { EventEmitter } = await import('events')
+  const { EventEmitter } = await import('node:events')
 
   class MockUnleashClient extends EventEmitter {
     private flags: Record<string, boolean> = {
       'test-feature-flag': true,
     }
 
-    constructor(options: any) {
+    constructor(_options: Record<string, unknown>) {
       super()
       // Emit ready event in next tick to ensure listeners are registered first
       Promise.resolve().then(() => {
@@ -21,19 +21,16 @@ vi.mock('unleash-proxy-client', async () => {
       // No-op for mock
     }
 
-    updateContext(context: any) {
+    updateContext(_context: Record<string, unknown>) {
       // No-op for mock
     }
 
     isEnabled(flag: string): boolean {
-      console.log('[MOCK] isEnabled called with flag:', flag)
       // Return true for test-feature-flag, false for others
-      const result = flag === 'test-feature-flag' ? true : (this.flags[flag] || false)
-      console.log('[MOCK] isEnabled returning:', result)
-      return result
+      return flag === 'test-feature-flag' ? true : (this.flags[flag] || false)
     }
 
-    getVariant(flag: string) {
+    getVariant(_flag: string) {
       return { name: 'disabled', enabled: false }
     }
   }
@@ -42,4 +39,3 @@ vi.mock('unleash-proxy-client', async () => {
     UnleashClient: MockUnleashClient,
   }
 })
-

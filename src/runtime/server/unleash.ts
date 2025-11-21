@@ -1,6 +1,6 @@
+import { EventEmitter } from 'node:events'
 import { UnleashClient } from 'unleash-proxy-client'
 import type { ModuleOptions } from '~/src/module'
-import { EventEmitter } from 'events'
 
 let unleashInstance: UnleashClient | undefined
 
@@ -10,7 +10,7 @@ class MockUnleashClient extends EventEmitter {
     'test-feature-flag': true,
   }
 
-  constructor(options: any) {
+  constructor(_options: ModuleOptions) {
     super()
     setImmediate(() => {
       this.emit('ready')
@@ -21,7 +21,7 @@ class MockUnleashClient extends EventEmitter {
     // No-op
   }
 
-  updateContext(context: any) {
+  updateContext(_context: Record<string, unknown>) {
     // No-op
   }
 
@@ -29,7 +29,7 @@ class MockUnleashClient extends EventEmitter {
     return this.flags[flag] || false
   }
 
-  getVariant(flag: string) {
+  getVariant(_flag: string) {
     return { name: 'disabled', enabled: false }
   }
 }
@@ -47,14 +47,14 @@ export default async function (options?: ModuleOptions) {
   const useMock = process.env.NODE_ENV === 'test' || options.url.includes('your-unleash-proxy.com')
 
   const instance = unleashInstance = useMock
-    ? (new MockUnleashClient(options) as any as UnleashClient)
+    ? (new MockUnleashClient(options) as unknown as UnleashClient)
     : new UnleashClient({
-        url: options.url,
-        clientKey: options.clientKey,
-        appName: options.appName,
-        refreshInterval: options.refreshInterval,
-        environment: options.environment,
-      })
+      url: options.url,
+      clientKey: options.clientKey,
+      appName: options.appName,
+      refreshInterval: options.refreshInterval,
+      environment: options.environment,
+    })
 
   instance.on('error', console.error)
   instance.on('warn', console.warn)
