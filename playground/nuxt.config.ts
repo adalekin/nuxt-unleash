@@ -1,3 +1,5 @@
+// Set NUXT_UNLEASH_URL and NUXT_UNLEASH_INSTANCE_ID to a project's GitLab feature flags (Deploy > Feature flags >
+// Configure) to try it against real flags.
 export default defineNuxtConfig({
   modules: ['../src/module'],
 
@@ -5,8 +7,6 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-17',
 
   unleash: {
-    url: 'https://your-unleash-proxy.com/api/frontend',
-    clientKey: 'YOUR_CLIENT_KEY',
     appName: 'staging',
     customApiPath: 'my-custom-unleash-path',
   },

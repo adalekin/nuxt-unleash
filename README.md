@@ -7,48 +7,99 @@ Find and replace all on all files (CMD+SHIFT+F):
 - Description: My new Nuxt module
 -->
 
-# Nuxt 3 Unleash Module
+# Nuxt Unleash Module
 
-[![npm version][npm-version-src]][npm-version-href]
-[![npm downloads][npm-downloads-src]][npm-downloads-href]
-[![License][license-src]][license-href]
-[![Nuxt][nuxt-src]][nuxt-href]
-
-This module allows the use of [Unleash](https://www.getunleash.io) feature flagging system into your Nuxt 3 app.
+Feature flags from [Unleash](https://www.getunleash.io) — including [GitLab feature flags](https://docs.gitlab.com/operations/feature_flags/), which serve an Unleash-compatible API — for Nuxt 3 and 4, evaluated on the server and delivered with the page.
 
 ## Features
 
-- Uses the [unleash-proxy-client](https://www.npmjs.com/package/unleash-proxy-client) SDK (v3.7.8) for communications with Unleash Proxy or Unleash Edge.
-- Reactive feature flag reloading in your components
-- Server-side (API) support
-- Contextual features support
+- Flags are evaluated on the server with the Node SDK ([unleash-client](https://www.npmjs.com/package/unleash-client)) for the context of each request, and handed to the browser in the payload: the first HTML already has them, nothing appears after hydration.
+- One client per server process keeps the flag definitions in memory; every evaluation gets its own context, so concurrent requests of different people never share state.
+- The browser reads the flags again, in one request, only when the context changes (login, logout, another account).
+- `useFeatureFlag(name)` is synchronous.
+- Server routes can evaluate flags themselves through `#unleash`.
 
 ## Quick Setup
-
-Install the module to your Nuxt application with one command:
 
 ```bash
 npm install approck-nuxt-unleash
 ```
 
-Then add the options into your `nuxt.config.ts`:
-
-```javascript
+```ts
 export default defineNuxtConfig({
-  modules: ["approck-nuxt-unleash"],
+  modules: ['approck-nuxt-unleash'],
   unleash: {
-    url: "https://your-unleash-proxy.com/api/frontend",
-    clientKey: "YOUR_CLIENT_KEY",
-    appName: "my-app-name",
-    refreshInterval: 15, // optional, in seconds
-    environment: "production", // optional
+    // GitLab: Deploy > Feature flags > Configure
+    url: 'https://gitlab.example.com/api/v4/feature_flags/unleash/42',
+    instanceId: 'glffct-…',
+    // The environment the app runs in: GitLab scopes flag strategies to environments by this name.
+    appName: 'production',
   },
-});
+})
 ```
 
-**Note:** This module requires an Unleash Proxy or Unleash Edge instance. The `url` should point to your proxy's frontend API endpoint (typically `/api/frontend`), and `clientKey` is the client-side API token from your Unleash instance.
+The settings are server-only runtime config, so they can be set at deploy time instead:
+`NUXT_UNLEASH_URL`, `NUXT_UNLEASH_INSTANCE_ID`, `NUXT_UNLEASH_APP_NAME`.
 
-That's it! You can now use Unleash in your Nuxt app ✨
+| Option | Default | |
+| --- | --- | --- |
+| `url` | — | Unleash client API URL (GitLab: API URL). |
+| `instanceId` | — | GitLab: Instance ID. Never sent to the browser. |
+| `appName` | — | GitLab: environment name. |
+| `refreshInterval` | `15` | Seconds between refreshes of the flag definitions. |
+| `readyTimeout` | `5` | Seconds a render waits for the first definitions after the server starts; after that the flags are off. |
+| `customApiPath` | `'unleash'` | The browser reads flags from `POST /api/<customApiPath>/features`. |
+
+Without `url`, `instanceId` or `appName` the app still starts; every flag is off and `unleash:error` is called.
+
+## Usage
+
+The app tells the module whom to evaluate for. Write the context in a plugin — the module's own plugin runs after the app's plugins — and again whenever the person changes:
+
+```ts
+// plugins/unleash-context.ts
+export default defineNuxtPlugin(() => {
+  const { data } = useAuth()
+  const context = useUnleashContext()
+  watch(() => data.value?.id, (id) => {
+    context.value = id == null ? {} : { userId: String(id) }
+  }, { immediate: true })
+})
+```
+
+Read flags anywhere:
+
+```ts
+const canvasEnabled = useFeatureFlag('canvas') // ComputedRef<boolean>
+const flags = useFeatureFlags() // Ref<string[] | null>: names of the flags that are on
+```
+
+Report failures — a read that failed leaves every flag off:
+
+```ts
+export default defineNuxtPlugin((nuxtApp) => {
+  nuxtApp.hook('unleash:error', error => Sentry.captureException(error))
+})
+```
+
+In a server route:
+
+```ts
+import { useUnleash } from '#unleash'
+
+export default defineEventHandler(async () => {
+  const client = await useUnleash()
+  return client.isEnabled('my-flag', { userId: '42' })
+})
+```
+
+The context the browser posts is not verified: flags gate the interface, not access — whatever a flag hides must still be checked by the API.
+
+## Migrating from 0.1
+
+- Options: `clientKey` and `environment` are gone; set `instanceId` instead. `url` points at the Unleash client API (GitLab's API URL), not at an Unleash Proxy.
+- `useUnleash().isFeatureEnabled(flag, ctx)` is replaced by `useFeatureFlag(flag)`; the context is set once with `useUnleashContext()`.
+- On the server, `#unleash` exports `useUnleash()`, which resolves to the `unleash-client` instance: `isEnabled(name, context)`.
 
 ## Contribution
 

@@ -1,12 +1,12 @@
 import NuxtUnleash from '../../../src/module'
 
+// `url` comes from NUXT_UNLEASH_URL, set by the test to its fake GitLab.
 export default defineNuxtConfig({
   modules: [
     NuxtUnleash,
   ],
   unleash: {
-    url: 'https://your-unleash-proxy.com/api/frontend',
-    clientKey: 'YOUR_CLIENT_KEY',
+    instanceId: 'test-instance-id',
     appName: 'staging',
   },
 })
