@@ -32,7 +32,7 @@ export default defineNitroPlugin((nitroApp: NitroApp) => {
       }
       catch (error) {
         if (!(error instanceof FeatureFlagsUnavailable)) throw error
-        return { unavailable: error.message }
+        return { unavailable: error.reason }
       }
     }
   })

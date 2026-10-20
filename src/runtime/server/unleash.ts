@@ -12,7 +12,9 @@ export interface UnleashServerConfig {
 }
 
 let client: Unleash | undefined
-let ready: Promise<void> | undefined
+/** Settles once per process: when the first definitions are in memory, or when `readyTimeout` runs out. */
+let startup: Promise<void> | undefined
+let hasDefinitions = false
 
 function requireSetting(config: UnleashServerConfig, key: 'url' | 'instanceId' | 'appName'): string {
   const value = config[key]
@@ -24,8 +26,8 @@ function requireSetting(config: UnleashServerConfig, key: 'url' | 'instanceId' |
  * The one Unleash client of this server process. It keeps the flag definitions in memory and evaluates every call
  * against the context passed to that call, so concurrent requests of different people never share state.
  *
- * `ready` resolves once definitions are in memory: from the first fetch, or from the backup file of an earlier run
- * when the server is unreachable at start — those are real last-known flags, not a guess.
+ * Definitions are in memory from the first fetch, or from the backup file of an earlier run when the server is
+ * unreachable at start — those are real last-known flags, not a guess.
  */
 export function startUnleash(config: UnleashServerConfig): Unleash {
   if (client) return client
@@ -39,9 +41,20 @@ export function startUnleash(config: UnleashServerConfig): Unleash {
     disableMetrics: true,
   })
   const started = client
-  ready = new Promise<void>((resolve) => {
-    if (started.isSynchronized()) return resolve()
-    started.once(UnleashEvents.Ready, () => resolve())
+  if (started.isSynchronized()) hasDefinitions = true
+  started.once(UnleashEvents.Ready, () => {
+    hasDefinitions = true
+  })
+  // Nitro does not wait for its plugins, so the server already takes requests: the renders of the first
+  // `readyTimeout` seconds share this one wait, and no render waits after it.
+  startup = new Promise<void>((resolve) => {
+    if (hasDefinitions) return resolve()
+    const timer = setTimeout(resolve, config.readyTimeout * 1000)
+    timer.unref()
+    started.once(UnleashEvents.Ready, () => {
+      clearTimeout(timer)
+      resolve()
+    })
   })
   client.on(UnleashEvents.Error, (error: unknown) => console.error('[unleash]', error))
   client.on(UnleashEvents.Warn, (message: unknown) => console.warn('[unleash]', message))
@@ -50,19 +63,8 @@ export function startUnleash(config: UnleashServerConfig): Unleash {
 
 async function readyClient(config: UnleashServerConfig): Promise<Unleash> {
   const unleash = startUnleash(config)
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new FeatureFlagsUnavailable(`no flag definitions within ${config.readyTimeout} s`)),
-      config.readyTimeout * 1000,
-    )
-  })
-  try {
-    await Promise.race([ready, late])
-  }
-  finally {
-    clearTimeout(timer)
-  }
+  await startup
+  if (!hasDefinitions) throw new FeatureFlagsUnavailable('no flag definitions since the server started')
   return unleash
 }
 

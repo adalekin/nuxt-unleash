@@ -1,4 +1,4 @@
-import { defineNuxtModule, createResolver, addServerHandler, addServerPlugin, addTypeTemplate, addImports, addPlugin } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerHandler, addServerPlugin, addTypeTemplate, addImports, addPlugin, hasNuxtModule } from '@nuxt/kit'
 import { defu } from 'defu'
 
 export interface ModuleOptions {
@@ -10,7 +10,10 @@ export interface ModuleOptions {
   appName: string
   /** Seconds between refreshes of the flag definitions on the server. */
   refreshInterval: number
-  /** Seconds a page render waits for the first definitions after the server starts; after that the flags are off. */
+  /**
+   * Seconds after the server starts in which renders wait, together, for the first definitions. No render waits
+   * after that: without definitions the flags are off until they arrive.
+   */
   readyTimeout: number
   /** Path segment of the endpoint the browser reads flags from: `/api/<customApiPath>/features`. */
   customApiPath: string
@@ -57,8 +60,18 @@ const moduleDefinition = defineNuxtModule<ModuleOptions>({
       handler: resolve('./runtime/server/api/features.post'),
     })
 
-    // Runs after the app's plugins (`enforce: 'post'`): the app writes the evaluation context before it is read.
-    addPlugin({ src: resolve('./runtime/plugin'), mode: 'all' })
+    // Every module is installed by now, whatever its place in `modules`. With @sidebase/nuxt-auth the context is the
+    // signed-in person; without it the app writes useUnleashContext. The module's own plugin is added last: it runs
+    // after the app's plugins and these (`enforce: 'post'`), so the context is written before it is read.
+    nuxt.hook('modules:done', () => {
+      if (hasNuxtModule('@sidebase/nuxt-auth', nuxt)) {
+        addPlugin({ src: resolve('./runtime/plugins/auth-context'), mode: 'all' }, { append: true })
+      }
+      if (hasNuxtModule('@sentry/nuxt/module', nuxt)) {
+        addPlugin({ src: resolve('./runtime/plugins/sentry'), mode: 'all' }, { append: true })
+      }
+      addPlugin({ src: resolve('./runtime/plugin'), mode: 'all' }, { append: true })
+    })
 
     addImports(['useFeatureFlag', 'useFeatureFlags', 'useUnleashContext'].map(name => ({
       name,

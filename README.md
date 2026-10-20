@@ -16,6 +16,7 @@ Feature flags from [Unleash](https://www.getunleash.io) — including [GitLab fe
 - Flags are evaluated on the server with the Node SDK ([unleash-client](https://www.npmjs.com/package/unleash-client)) for the context of each request, and handed to the browser in the payload: the first HTML already has them, nothing appears after hydration.
 - One client per server process keeps the flag definitions in memory; every evaluation gets its own context, so concurrent requests of different people never share state.
 - The browser reads the flags again, in one request, only when the context changes (login, logout, another account).
+- With [@sidebase/nuxt-auth](https://auth.sidebase.io) the flags are evaluated for the signed-in person, and with [@sentry/nuxt](https://docs.sentry.io/platforms/javascript/guides/nuxt/) failures are reported — nothing to write in the app.
 - `useFeatureFlag(name)` is synchronous.
 - Server routes can evaluate flags themselves through `#unleash`.
 
@@ -47,23 +48,22 @@ The settings are server-only runtime config, so they can be set at deploy time i
 | `instanceId` | — | GitLab: Instance ID. Never sent to the browser. |
 | `appName` | — | GitLab: environment name. |
 | `refreshInterval` | `15` | Seconds between refreshes of the flag definitions. |
-| `readyTimeout` | `5` | Seconds a render waits for the first definitions after the server starts; after that the flags are off. |
+| `readyTimeout` | `5` | Seconds after the server starts in which renders wait, together, for the first definitions. No render waits after that: without definitions the flags are off until they arrive. |
 | `customApiPath` | `'unleash'` | The browser reads flags from `POST /api/<customApiPath>/features`. |
 
 Without `url`, `instanceId` or `appName` the app still starts; every flag is off and `unleash:error` is called.
 
 ## Usage
 
-The app tells the module whom to evaluate for. Write the context in a plugin — the module's own plugin runs after the app's plugins — and again whenever the person changes:
+With @sidebase/nuxt-auth installed the module evaluates flags for the session's `id` as `userId`. nuxt-auth reads the session on the server, so the first HTML has that person's flags; login, logout and another account read them again.
+
+Without nuxt-auth the app tells the module whom to evaluate for. Write the context in a plugin — the module's own plugin runs after the app's plugins — and again whenever the person changes:
 
 ```ts
 // plugins/unleash-context.ts
 export default defineNuxtPlugin(() => {
-  const { data } = useAuth()
-  const context = useUnleashContext()
-  watch(() => data.value?.id, (id) => {
-    context.value = id == null ? {} : { userId: String(id) }
-  }, { immediate: true })
+  const userId = useCookie<string | null>('user-id')
+  useUnleashContext().value = userId.value ? { userId: userId.value } : {}
 })
 ```
 
@@ -74,11 +74,11 @@ const canvasEnabled = useFeatureFlag('canvas') // ComputedRef<boolean>
 const flags = useFeatureFlags() // Ref<string[] | null>: names of the flags that are on
 ```
 
-Report failures — a read that failed leaves every flag off:
+A read that failed leaves every flag off and calls `unleash:error`. With @sentry/nuxt installed the module sends it to Sentry itself; otherwise subscribe to the hook:
 
 ```ts
 export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.hook('unleash:error', error => Sentry.captureException(error))
+  nuxtApp.hook('unleash:error', error => console.error(error))
 })
 ```
 

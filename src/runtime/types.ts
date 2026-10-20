@@ -19,12 +19,15 @@ export interface FeatureFlagsEvaluation {
  * What the server hands the Nuxt app for one context. The app and Nitro are separate bundles with their own copy of
  * every class, so a failure crosses as data — an `instanceof` check on a thrown error would never match.
  */
-export type FeatureFlagsOutcome = FeatureFlagsEvaluation | { unavailable: string }
+export type FeatureFlagsOutcome = FeatureFlagsEvaluation | { /** The reason, without the class's prefix. */ unavailable: string }
 
 /** Flag definitions were not available in time, or the browser could not reach the module's endpoint. */
 export class FeatureFlagsUnavailable extends Error {
+  readonly reason: string
+
   constructor(reason: string, options?: ErrorOptions) {
     super(`Feature flags are unavailable: ${reason}`, options)
+    this.reason = reason
     this.name = 'FeatureFlagsUnavailable'
   }
 }

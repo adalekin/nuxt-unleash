@@ -37,6 +37,8 @@ export default defineEventHandler(async (event) => {
   const evaluate = event.context.unleashEvaluate
   if (!evaluate) throw new Error('approck-nuxt-unleash: the server plugin did not attach unleashEvaluate')
   const outcome = await evaluate(context)
-  if ('unavailable' in outcome) throw createError({ statusCode: 503, statusMessage: outcome.unavailable })
+  if ('unavailable' in outcome) {
+    throw createError({ statusCode: 503, statusMessage: `Feature flags are unavailable: ${outcome.unavailable}` })
+  }
   return outcome
 })

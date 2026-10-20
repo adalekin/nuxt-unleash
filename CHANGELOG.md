@@ -10,7 +10,9 @@ Breaking: flags are evaluated on the server and delivered with the page.
 - Flags reach the browser in the payload (`useFeatureFlag`, `useFeatureFlags`); the browser reads them again only when
   the context from `useUnleashContext` changes.
 - Options: `url` + `instanceId` + `appName` (GitLab feature flags or an Unleash client API); `clientKey` and
-  `environment` are removed. New `readyTimeout`.
+  `environment` are removed. New `readyTimeout`: one wait per server process for the first definitions; no render
+  waits after it.
+- With `@sidebase/nuxt-auth` the context is the session's `id`; with `@sentry/nuxt` failures go to Sentry.
 - A failed read turns every flag off and calls the `unleash:error` hook.
 - `customApiPath` now sets the route the browser uses (0.1 wrote and read different config keys).
 - `useUnleash().isFeatureEnabled` is removed; `#unleash` exports `useUnleash()` resolving to the SDK client.
