@@ -1,35 +1,84 @@
-import { UnleashClient } from 'unleash-proxy-client'
-import type { ModuleOptions } from '~/src/module'
+import { Unleash, UnleashEvents } from 'unleash-client'
+import { FeatureFlagsUnavailable, type FeatureFlagsEvaluation, type UnleashContext } from '../types'
 
-let unleashInstance: UnleashClient | undefined
+export interface UnleashServerConfig {
+  url: string
+  instanceId: string
+  appName: string
+  /** Seconds between refreshes of the flag definitions. */
+  refreshInterval: number
+  /** Seconds an evaluation waits for the first definitions before it fails. */
+  readyTimeout: number
+}
 
-export default async function (options?: ModuleOptions) {
-  if (unleashInstance) {
-    return unleashInstance
-  }
+let client: Unleash | undefined
+/** Settles once per process: when the first definitions are in memory, or when `readyTimeout` runs out. */
+let startup: Promise<void> | undefined
+let hasDefinitions = false
 
-  if (!options) {
-    throw new Error('Unleash must be initialized with options first!')
-  }
+function requireSetting(config: UnleashServerConfig, key: 'url' | 'instanceId' | 'appName'): string {
+  const value = config[key]
+  if (!value) throw new FeatureFlagsUnavailable(`runtimeConfig.unleash.${key} is not set`)
+  return value
+}
 
-  const instance = unleashInstance = new UnleashClient({
-    url: options.url,
-    clientKey: options.clientKey,
-    appName: options.appName,
-    refreshInterval: options.refreshInterval,
-    environment: options.environment,
+/**
+ * The one Unleash client of this server process. It keeps the flag definitions in memory and evaluates every call
+ * against the context passed to that call, so concurrent requests of different people never share state.
+ *
+ * Definitions are in memory from the first fetch, or from the backup file of an earlier run when the server is
+ * unreachable at start — those are real last-known flags, not a guess.
+ */
+export function startUnleash(config: UnleashServerConfig): Unleash {
+  if (client) return client
+
+  client = new Unleash({
+    url: requireSetting(config, 'url'),
+    instanceId: requireSetting(config, 'instanceId'),
+    appName: requireSetting(config, 'appName'),
+    refreshInterval: config.refreshInterval * 1000,
+    // GitLab accepts client metrics and drops them (lib/api/unleash.rb: "not supported yet").
+    disableMetrics: true,
   })
-
-  instance.on('error', console.error)
-  instance.on('warn', console.warn)
-
-  instance.start()
-
-  await new Promise((resolve) => {
-    instance.on('ready', () => {
-      resolve(null)
+  const started = client
+  if (started.isSynchronized()) hasDefinitions = true
+  started.once(UnleashEvents.Ready, () => {
+    hasDefinitions = true
+  })
+  // Nitro does not wait for its plugins, so the server already takes requests: the renders of the first
+  // `readyTimeout` seconds share this one wait, and no render waits after it.
+  startup = new Promise<void>((resolve) => {
+    if (hasDefinitions) return resolve()
+    const timer = setTimeout(resolve, config.readyTimeout * 1000)
+    timer.unref()
+    started.once(UnleashEvents.Ready, () => {
+      clearTimeout(timer)
+      resolve()
     })
   })
+  client.on(UnleashEvents.Error, (error: unknown) => console.error('[unleash]', error))
+  client.on(UnleashEvents.Warn, (message: unknown) => console.warn('[unleash]', message))
+  return client
+}
 
-  return instance
+async function readyClient(config: UnleashServerConfig): Promise<Unleash> {
+  const unleash = startUnleash(config)
+  await startup
+  if (!hasDefinitions) throw new FeatureFlagsUnavailable('no flag definitions since the server started')
+  return unleash
+}
+
+/** The client once its definitions are in memory, for server routes that evaluate flags themselves. */
+export function useUnleashClient(config: UnleashServerConfig): Promise<Unleash> {
+  return readyClient(config)
+}
+
+/** Every flag defined for this `appName`, evaluated for one context. */
+export async function evaluateFlags(config: UnleashServerConfig, context: UnleashContext): Promise<FeatureFlagsEvaluation> {
+  const unleash = await readyClient(config)
+  const enabled = unleash
+    .getFeatureToggleDefinitions()
+    .map(definition => definition.name)
+    .filter(name => unleash.isEnabled(name, context))
+  return { enabled }
 }

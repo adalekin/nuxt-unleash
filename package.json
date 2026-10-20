@@ -1,7 +1,7 @@
 {
   "name": "approck-nuxt-unleash",
-  "version": "0.1.0",
-  "description": "This module allows the use of Unleash feature flagging system into your Nuxt 3 app using unleash-proxy-client.",
+  "version": "0.2.0",
+  "description": "Unleash and GitLab feature flags for Nuxt, evaluated on the server and delivered with the page.",
   "repository": "https://github.com/approck/nuxt-unleash",
   "license": "MIT",
   "type": "module",
@@ -19,7 +19,7 @@
     "dist"
   ],
   "scripts": {
-    "prepack": "nuxt-module-build build",
+    "prepack": "nuxt-module-build prepare && nuxt-module-build build",
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxi prepare playground",
@@ -34,7 +34,8 @@
   "dependencies": {
     "@nuxt/kit": "^3.14.1592",
     "defu": "^6.1.4",
-    "unleash-proxy-client": "3.7.8"
+    "ofetch": "^1.4.1",
+    "unleash-client": "^6.12.1"
   },
   "devDependencies": {
     "@nuxt/devtools": "^1.6.1",

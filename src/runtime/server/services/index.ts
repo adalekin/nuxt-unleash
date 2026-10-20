@@ -1,6 +1,7 @@
-import unleashClient from '../unleash'
+import { useUnleashClient, type UnleashServerConfig } from '../unleash'
+import { useRuntimeConfig } from '#imports'
 
-export async function useUnleash() {
-  const client = await unleashClient()
-  return client
+/** The server's Unleash client once its definitions are loaded: `isEnabled(name, context)` for server routes. */
+export function useUnleash() {
+  return useUnleashClient(useRuntimeConfig().unleash as UnleashServerConfig)
 }

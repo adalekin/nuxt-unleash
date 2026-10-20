@@ -1,12 +1,8 @@
 import NuxtUnleash from '../../../src/module'
 
+// No Unleash settings at all: the server must still start and render.
 export default defineNuxtConfig({
   modules: [
     NuxtUnleash,
   ],
-  unleash: {
-    url: 'https://your-unleash-proxy.com/api/frontend',
-    clientKey: 'YOUR_CLIENT_KEY',
-    appName: 'staging',
-  },
 })

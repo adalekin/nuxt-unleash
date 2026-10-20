@@ -1,57 +1,31 @@
 <template>
   <div>
-    <h1>nuxt-unleash for Nuxt 3</h1>
-    <p>Here you can play around with Vue 3 and Vite</p>
-    <p
-      v-if="enabled"
-      style="color: green;"
-    >
-      Feature flag is enabled for {{ ctx.userId }}
-    </p>
-    <p
-      v-else
-      style="color: red;"
-    >
-      Feature flag is disabled for {{ ctx.userId }}
+    <h1>approck-nuxt-unleash playground</h1>
+    <p :style="{ color: enabled ? 'green' : 'red' }">
+      test-feature-flag is {{ enabled ? 'enabled' : 'disabled' }} for {{ context.userId ?? 'a guest' }}
     </p>
     <p>
       <button
         type="button"
-        @click="refresh"
+        @click="signIn('testuser1@example.com')"
       >
-        Refresh feature
+        Act as testuser1@example.com
       </button>
+      <button
+        type="button"
+        @click="signIn('testuser2@example.com')"
+      >
+        Act as testuser2@example.com
+      </button>
+    </p>
+    <p :style="{ color: serverFeatureFlag ? 'green' : 'red' }">
+      test-feature-flag-server is {{ serverFeatureFlag ? 'enabled' : 'disabled' }} in a server route
     </p>
     <p>
       <button
         type="button"
-        @click="ctx.userId = 'testuser1@example.com'"
+        @click="checkFeatureFlagApi"
       >
-        Change user to testuser1@example.com
-      </button>
-    </p>
-    <p>
-      <button
-        type="button"
-        @click="ctx.userId = 'testuser2@example.com'"
-      >
-        Change user to testuser2@example.com
-      </button>
-    </p>
-    <p
-      v-if="serverFeatureFlag"
-      style="color: green;"
-    >
-      Server Feature flag is enabled
-    </p>
-    <p
-      v-else
-      style="color: red;"
-    >
-      Server Feature flag is disabled
-    </p>
-    <p>
-      <button @click="checkFeatureFlagApi">
         Check feature flag on api
       </button>
     </p>
@@ -62,17 +36,19 @@
 </template>
 
 <script setup lang="ts">
-const { isFeatureEnabled } = useUnleash()
+const enabled = useFeatureFlag('test-feature-flag')
+const context = useUnleashContext()
+const userCookie = useCookie<string | null>('playground-user', { decode: value => value })
 
-const ctx = ref({
-  userId: 'testuser1@example.com',
-})
-
-const { enabled, refresh } = await isFeatureEnabled('test-feature-flag', ctx)
+// Changing the context makes the module read the flags again for the new person.
+const signIn = (userId: string) => {
+  userCookie.value = userId
+  context.value = { userId }
+}
 
 const serverFeatureFlag = ref(false)
 
 const checkFeatureFlagApi = async () => {
-  serverFeatureFlag.value = await $fetch('/api/feature-flag')
+  serverFeatureFlag.value = await $fetch<boolean>('/api/feature-flag')
 }
 </script>
